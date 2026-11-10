@@ -1,3 +1,47 @@
+
+Continued from
+Buat website GitHub (1)
+MUNGKIN KARENA ESP 32NYA SAYA MATIKAN
+IYA, BISA JADI! 😄
+
+Kalau ESP32 kamu dimatikan, sensor tidak mengirim pembaruan data ke Blynk. Akibatnya, data bisa kosong atau tidak diperbarui.
+
+Sekarang coba ini:
+
+Nyalakan ESP32.
+
+Pastikan ESP32 tersambung ke Wi-Fi.
+
+Buka aplikasi Blynk dan pastikan nilai V0, V1, dan V3 muncul.
+
+Buka ulang http://127.0.0.1:8000/blynk-data.
+
+Target berhasil Nilai temperature, soil_moisture, dan air_humidity sudah berisi angka, bukan null.
+
+Coba nyalakan ESP32 dulu, lalu kirim hasil JSON terbarunya.
+
+MUNGKIN SUDAH TERHUBUNG ,TAPI KARENA AKU TIDAK DI RUMAH KITA LANJUT SAJA
+Oke! Kita lanjut saja. Karena ESP32 sedang tidak berada di dekatmu, kita bisa menyiapkan website terlebih dahulu. Nanti saat ESP32 menyala, kita tes data aslinya.
+
+Tahap berikutnya: Hubungkan website GitHub ke FastAPI
+Ada satu hal penting: backend FastAPI kamu saat ini berjalan di komputer sendiri (127.0.0.1). Website GitHub tidak bisa mengaksesnya dari perangkat pengunjung lain. Untuk pengujian awal, kita bisa mencoba dari komputer yang sama.
+
+Langkah 1 — Buka index.html di GitHub
+Buka repositori:
+
+DWK68/pelatihanTIK
+
+Pilih file index.html, lalu klik ikon pensil untuk mengedit.
+
+Langkah 2 — Cari bagian JavaScript
+Cari tulisan:
+
+Koneksi Blynk Belum diintegrasikan
+
+Kirimkan potongan kode JavaScript yang mengatur tampilan suhu, kelembapan udara, dan kelembapan tanah di index.html.
+
+Jangan ubah atau hapus kode dulu. Aku akan sesuaikan kode penghubungnya dengan struktur website kamu agar tampilan yang sudah dibuat tidak rusak.
+
 <!doctype html>
 <html lang="id">
 <head>
@@ -39,48 +83,494 @@ section{padding:66px 0}.section-head{display:flex;justify-content:space-between;
 <label>Suhu udara (°C)<input id="aiTemp" type="number" value="28" step="0.1"></label>
 <label>Kelembapan udara (%)<input id="aiHum" type="number" value="65" min="0" max="100"></label>
 <label>Kelembapan tanah (%)<input id="aiSoil" type="number" value="42" min="0" max="100"></label>
-<label>Kondisi tanaman<select id="aiPlant" style="padding:11px;border:1px solid var(--line);border-radius:10px;font:inherit"><option>Tanaman umum</option><option>Cabai</option><option>Tomat</option><option>Sayuran daun</option></select></label>
+<label>Kondisi tanaman<select id
+…
+Nah, sekarang aku sudah melihat seluruh kode website HYDRA SOIL SENSOR kamu. Struktur dan desainnya sudah bagus, jadi kita tidak perlu membuat ulang website. Kita cukup menambahkan penghubung data Blynk ke tiga kartu dashboard.
+
+Kita akan mempertahankan:
+
+V0 untuk suhu udara.
+
+V1 untuk kelembapan tanah.
+
+V3 untuk kelembapan udara.
+
+V2 tetap tidak digunakan di website.
+
+Desain dan fitur AI Plant Assistant tetap ada.
+
+1. Tambahkan ID pada tiga kartu sensor
+Di index.html, cari bagian <div class="metrics">.
+
+Ganti seluruh bagian tersebut dengan kode ini:
+
+<div class="metrics">
+
+  <article class="metric">
+    <div class="metric-top">
+      <span>🌡️ Suhu udara</span>
+      <span>DHT22</span>
+    </div>
+    <div class="metric-value" id="temperature">--°C</div>
+    <small id="temperatureInfo">Menunggu data Blynk</small>
+    <div class="bar"><i id="temperatureBar" style="width:0%"></i></div>
+  </article>
+
+  <article class="metric">
+    <div class="metric-top">
+      <span>💧 Kelembapan udara</span>
+      <span>DHT22</span>
+    </div>
+    <div class="metric-value" id="airHumidity">--%</div>
+    <small id="humidityInfo">Menunggu data Blynk</small>
+    <div class="bar"><i id="humidityBar" style="width:0%"></i></div>
+  </article>
+
+  <article class="metric">
+    <div class="metric-top">
+      <span>🪴 Kelembapan tanah</span>
+      <span>Soil sensor</span>
+    </div>
+    <div class="metric-value" id="soilMoisture">--%</div>
+    <small id="soilInfo">Menunggu data Blynk</small>
+    <div class="bar"><i id="soilBar" style="width:0%"></i></div>
+  </article>
+
 </div>
-<button class="btn ai-action" id="sensorAnalyze">Analisis data sensor</button>
-<div class="ai-result" id="sensorResult" aria-live="polite">Hasil rekomendasi akan muncul di sini.</div>
-<p class="ai-note">Saran awal memakai aturan ambang sederhana. Ambang ideal berbeda menurut jenis tanaman dan fase pertumbuhan.</p></article>
-<article class="ai-card"><h3>📷 Analisis foto tanaman</h3><p class="muted">Pilih foto daun atau seluruh tanaman yang jelas dan memiliki pencahayaan cukup.</p>
-<label class="upload"> <span id="uploadLabel">Pilih foto tanaman (JPG/PNG)</span><input id="plantPhoto" type="file" accept="image/png,image/jpeg,image/webp"></label>
-<img class="preview" id="photoPreview" alt="Pratinjau foto tanaman">
-<button class="btn ai-action" id="photoAnalyze">Analisis foto dengan AI</button>
-<div class="ai-result" id="photoResult" aria-live="polite">Pilih foto untuk memulai analisis.</div>
-<p class="ai-note">Analisis foto AI memerlukan layanan backend yang aman. Foto belum dikirim atau dianalisis sebelum backend dipasang.</p></article>
-</div></div></section>
-</main>
-<footer><div class="wrap foot"><strong>HYDRA SOIL SENSOR · Smart Garden</strong><span>Proyek teknologi hijau berbasis ESP32</span><span>© 2026</span></div></footer>
+
+2. Perbarui status koneksi
+Cari bagian ini:
+
+<span class="status"><i class="dot"></i> Mode demo</span>
+
+Ganti dengan:
+
+<span class="status" id="connectionStatus">
+  <i class="dot"></i> Menghubungkan...
+</span>
+
+Lalu pada panel Status perangkat, ganti empat baris statusnya menjadi:
+
+<div class="reading">
+  <strong>ESP32</strong>
+  <span id="espStatus">Menunggu koneksi</span>
+</div>
+
+<div class="reading">
+  <strong>Pompa air</strong>
+  <span>Pantau melalui Blynk</span>
+</div>
+
+<div class="reading">
+  <strong>Sensor air</strong>
+  <span>Terhubung ke ESP32</span>
+</div>
+
+<div class="reading">
+  <strong>Koneksi Blynk</strong>
+  <span id="blynkStatus">Belum terhubung</span>
+</div>
+
+3. Tambahkan kode penghubung FastAPI
+Scroll sampai bagian paling bawah index.html.
+
+Cari:
+
+</body>
+</html>
+
+Tempel kode berikut tepat sebelum </body>. Jangan hapus JavaScript lama.
 
 <script>
-(function(){
-const $=id=>document.getElementById(id);
-$('sensorAnalyze').addEventListener('click',()=>{
- const t=Number($('aiTemp').value),h=Number($('aiHum').value),s=Number($('aiSoil').value),p=$('aiPlant').value;
- if(!Number.isFinite(t)||!Number.isFinite(h)||!Number.isFinite(s)||h<0||h>100||s<0||s>100){$('sensorResult').textContent='Periksa kembali nilai sensor. Kelembapan harus 0–100%.';return;}
- const advice=[];
- if(s<30) advice.push('Tanah terdeteksi relatif kering. Periksa media tanam; siram sedikit demi sedikit jika memang kering.');
- else if(s>80) advice.push('Tanah sangat basah. Tunda penyiraman dan pastikan pot memiliki drainase yang baik.');
- else advice.push('Kelembapan tanah berada pada rentang sedang. Pantau kembali secara berkala.');
- if(t>32) advice.push('Suhu udara cukup tinggi. Pertimbangkan tempat yang teduh dengan sirkulasi udara baik.');
- else if(t<15) advice.push('Suhu relatif rendah. Perhatikan kebutuhan suhu tanaman '+p.toLowerCase()+'.');
- else advice.push('Suhu udara tidak menunjukkan kondisi ekstrem berdasarkan ambang umum.');
- if(h<35) advice.push('Udara cenderung kering; amati kondisi daun dan kebutuhan kelembapan tanaman.');
- else if(h>85) advice.push('Kelembapan udara tinggi. Jaga sirkulasi udara dan amati tanda penyakit daun.');
- else advice.push('Kelembapan udara berada pada tingkat sedang.');
- $('sensorResult').innerHTML='<strong>Rekomendasi awal:</strong><br>'+advice.map(x=>'• '+x).join('<br>')+'<br><small>Ini panduan umum, bukan diagnosis pasti. Sesuaikan dengan jenis dan fase pertumbuhan tanaman.</small>';
-});
-$('plantPhoto').addEventListener('change',e=>{
- const file=e.target.files&&e.target.files[0]; if(!file)return;
- if(!/^image\/(jpeg|png|webp)$/.test(file.type)){$('photoResult').textContent='Format foto harus JPG, PNG, atau WEBP.';return;}
- const url=URL.createObjectURL(file);$('photoPreview').src=url;$('photoPreview').style.display='block';$('uploadLabel').textContent=file.name;$('photoResult').textContent='Foto siap dipilih. Analisis AI aktif setelah backend dipasang.';
-});
-$('photoAnalyze').addEventListener('click',async()=>{
- const file=$('plantPhoto').files&&$('plantPhoto').files[0];if(!file){$('photoResult').textContent='Pilih foto tanaman terlebih dahulu.';return;}
- $('photoResult').textContent='Backend AI belum dikonfigurasi. Foto belum dianalisis. Setelah backend aman dipasang, fitur ini dapat mengenali gejala visual dan menyarankan pemeriksaan lanjutan.';
-});
-})();
+const API_URL = "http://127.0.0.1:8000";
+
+async function updateDashboard() {
+  const status = document.getElementById("connectionStatus");
+  const blynk = document.getElementById("blynkStatus");
+  const esp = document.getElementById("espStatus");
+
+  try {
+    const response = await fetch(API_URL + "/blynk-data");
+
+    if (!response.ok) {
+      throw new Error("Backend error: " + response.status);
+    }
+
+    const data = await response.json();
+
+    const temperature = Number(data.temperature);
+    const humidity = Number(data.air_humidity);
+    const soil = Number(data.soil_moisture);
+
+    if (
+      data.temperature == null ||
+      data.air_humidity == null ||
+      data.soil_moisture == null ||
+      !Number.isFinite(temperature) ||
+      !Number.isFinite(humidity) ||
+      !Number.isFinite(soil)
+    ) {
+      throw new Error("Data sensor belum tersedia");
+    }
+
+    document.getElementById("temperature").textContent =
+      temperature + "°C";
+
+    document.getElementById("airHumidity").textContent =
+      humidity + "%";
+
+    document.getElementById("soilMoisture").textContent =
+      soil + "%";
+
+    document.getElementById("temperatureInfo").textContent =
+      "Data aktual dari Blynk";
+
+    document.getElementById("humidityInfo").textContent =
+      "Data aktual dari Blynk";
+
+    document.getElementById("soilInfo").textContent =
+      "Data aktual dari Blynk";
+
+    document.getElementById("temperatureBar").style.width =
+      Math.max(0, Math.min(100, temperature / 50 * 100)) + "%";
+
+    document.getElementById("humidityBar").style.width =
+      Math.max(0, Math.min(100, humidity)) + "%";
+
+    document.getElementById("soilBar").style.width =
+      Math.max(0, Math.min(100, soil)) + "%";
+
+    status.innerHTML = '<i class="dot"></i> Terhubung';
+    blynk.textContent = "Terhubung";
+    esp.textContent = "Data diterima";
+
+  } catch (error) {
+    status.innerHTML = '<i class="dot"></i> Menunggu data';
+    blynk.textContent = "Data belum tersedia";
+    esp.textContent = "Belum terverifikasi";
+
+    console.log("Dashboard:", error.message);
+  }
+}
+
+updateDashboard();
+setInterval(updateDashboard, 5000);
 </script>
-</body></html>
+
+4. Simpan dan uji
+Klik Commit changes di GitHub.
+
+Pastikan FastAPI masih berjalan di komputer.
+
+Buka website kamu: https://dwk68.github.io/pelatihanTIK/
+
+Tunggu beberapa detik.
+
+Gambaran hasil yang diharapkan
+
+🌡️ Suhu udara
+
+28°C
+
+💧 Kelembapan udara
+
+65%
+
+🪴 Kelembapan tanah
+
+42%
+
+Angka hanya ilustrasi, bukan data sensor aktual.
+Penting: Alamat 127.0.0.1 hanya bisa diakses dari komputer yang menjalankan backend. Jadi, ini untuk pengujian di komputermu dahulu. Agar website bisa diakses orang lain dengan data langsung, nanti backend harus dipasang di server online dengan HTTPS.
+
+Setelah kamu selesai mengedit, beri tahu aku. Kita lanjut ke tahap meng-online-kan backend agar website HYDRA SOIL SENSOR bisa menampilkan data dari mana saja.
+
+LENGKAPNYA SAJA BIAR AKU UPDATE
+Siap! Ini kode lengkap index.html HYDRA SOIL SENSOR yang sudah digabung dengan penghubung FastAPI dan Blynk. Kamu cukup mengganti seluruh isi file index.html di GitHub dengan kode ini.
+
+Yang dipertahankan:
+
+Desain website sebelumnya.
+
+Dashboard suhu, kelembapan udara, dan kelembapan tanah.
+
+Datastream Blynk V0, V1, dan V3.
+
+Fitur AI Plant Assistant dan upload foto.
+
+V2 tidak digunakan di website.
+
+Pembaruan data otomatis setiap 5 detik.
+
+Siap diperbarui
+
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#10251d">
+<title>HYDRA SOIL SENSOR | Smart Garden</title>
+
+<style>
+:root{
+--bg:#f3f7f1;--ink:#183328;--muted:#6d8175;
+--green:#2f8058;--lime:#c8ed8b;--card:#fff;
+--line:#e4ece3;--shadow:0 18px 50px #193d2810
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+margin:0;background:var(--bg);color:var(--ink);
+font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif
+}
+a{color:inherit;text-decoration:none}
+.wrap{width:min(1120px,92%);margin:auto}
+
+header{background:#10251d;color:white;padding:18px 0}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:20px}
+.brand{font-weight:850;letter-spacing:.08em;font-size:1.08rem}
+.brand span{color:var(--lime)}
+nav{display:flex;gap:24px;color:#d5e2d8;font-size:.92rem}
+
+.hero{
+padding:74px 0 64px;
+background:radial-gradient(ellipse at 85% 20%,#376b4a 0,transparent 35%),#10251d;
+color:white;overflow:hidden
+}
+.hero-grid{
+display:grid;grid-template-columns:1.15fr .85fr;
+align-items:center;gap:40px
+}
+.eyebrow{
+color:var(--lime);font-weight:750;letter-spacing:.13em;
+text-transform:uppercase;font-size:.76rem
+}
+.hero h1{
+font-size:clamp(2.5rem,6vw,4.8rem);
+line-height:1.02;letter-spacing:-.055em;margin:18px 0
+}
+.hero p{color:#c8d8cd;line-height:1.8;max-width:570px}
+.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:26px}
+.btn{
+display:inline-block;padding:13px 19px;border-radius:999px;
+background:var(--lime);color:#173323;font-weight:800
+}
+.btn.ghost{background:transparent;border:1px solid #ffffff55;color:white}
+.plant-art{
+min-height:300px;border:1px solid #ffffff20;border-radius:28px;
+background:linear-gradient(145deg,#ffffff16,#ffffff05);
+display:grid;place-items:center;font-size:9rem;position:relative
+}
+.plant-art:after{
+content:"TUMBUH LEBIH CERDAS";position:absolute;bottom:22px;
+font-size:.7rem;letter-spacing:.18em;color:#d2e4d6;font-weight:800
+}
+
+section{padding:66px 0}
+.section-head{
+display:flex;justify-content:space-between;align-items:end;
+gap:20px;margin-bottom:25px
+}
+.section-head h2{
+font-size:clamp(1.7rem,4vw,2.5rem);
+letter-spacing:-.04em;margin:8px 0
+}
+.muted{color:var(--muted);line-height:1.7}
+.status{
+display:inline-flex;align-items:center;gap:8px;
+background:#e5f4e8;color:#287348;padding:8px 12px;
+border-radius:99px;font-size:.8rem;font-weight:750
+}
+.dot{width:8px;height:8px;border-radius:50%;background:#36a765}
+
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.metric,.panel,.feature{
+background:var(--card);border:1px solid var(--line);
+border-radius:20px;padding:22px;box-shadow:var(--shadow)
+}
+.metric-top{display:flex;justify-content:space-between;color:var(--muted);font-size:.88rem}
+.metric-value{font-size:2.35rem;font-weight:850;letter-spacing:-.05em;margin:18px 0 4px}
+.metric small{color:var(--muted)}
+.bar{height:8px;background:#edf2ec;border-radius:99px;margin-top:16px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--green);border-radius:99px;transition:width .4s}
+.dash-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:16px;margin-top:16px}
+.panel h3{margin:0 0 8px}
+.reading{
+display:flex;justify-content:space-between;padding:14px 0;
+border-bottom:1px solid var(--line);gap:12px
+}
+.reading:last-child{border:0}
+.reading strong{font-size:.9rem}
+.reading span{color:var(--muted);font-size:.88rem;text-align:right}
+.features{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.feature .ico{font-size:1.8rem}
+.feature h3{margin:14px 0 8px}
+.feature p{color:var(--muted);line-height:1.7;font-size:.93rem}
+.about{background:#e8f0e5}
+.about-grid{display:grid;grid-template-columns:1fr 1fr;gap:45px;align-items:center}
+.about-card{background:#173b2a;color:white;padding:28px;border-radius:24px}
+.about-card p{color:#d0e1d4;line-height:1.8}
+footer{background:#10251d;color:#c8d8cd;padding:28px 0;font-size:.85rem}
+.foot{display:flex;justify-content:space-between;gap:15px;flex-wrap:wrap}
+
+.ai-section{background:#f7faf5}
+.ai-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.ai-card{
+background:#fff;border:1px solid var(--line);
+border-radius:20px;padding:22px;box-shadow:var(--shadow)
+}
+.ai-card h3{margin:0 0 8px}
+.ai-form{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
+.ai-form label{
+font-size:.85rem;color:var(--muted);display:grid;gap:6px
+}
+.ai-form input,.ai-form select{
+width:100%;padding:11px;border:1px solid var(--line);
+border-radius:10px;font:inherit;color:var(--ink)
+}
+.ai-action{border:0;cursor:pointer;font:inherit;margin-top:16px}
+.ai-result{
+margin-top:15px;padding:15px;border-radius:14px;
+background:#edf5eb;line-height:1.7;min-height:60px
+}
+.upload{
+display:block;border:1.5px dashed #b9cbb9;border-radius:14px;
+padding:18px;text-align:center;margin-top:16px;
+color:var(--muted);cursor:pointer
+}
+.upload input{display:none}
+.preview{
+max-width:100%;max-height:210px;display:none;
+object-fit:contain;margin:14px auto 0;border-radius:12px
+}
+.ai-note{font-size:.82rem;color:var(--muted);line-height:1.6;margin-top:12px}
+
+@media(max-width:760px){
+nav{display:none}
+.hero{padding:55px 0}
+.hero-grid,.about-grid,.dash-grid{grid-template-columns:1fr}
+.plant-art{min-height:220px;font-size:7rem}
+.metrics,.features{grid-template-columns:1fr}
+.section-head{align-items:start;flex-direction:column}
+section{padding:48px 0}
+.ai-grid{grid-template-columns:1fr}
+.ai-form{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<div class="wrap nav">
+<a class="brand" href="#">HYDRA<span>•</span>SOIL</a>
+<nav>
+<a href="#dashboard">Dashboard</a>
+<a href="#fitur">Fitur</a>
+<a href="#tentang">Tentang</a>
+</nav>
+<a class="btn" href="#dashboard">Lihat Dashboard</a>
+</div>
+</header>
+
+<main>
+
+<section class="hero">
+<div class="wrap hero-grid">
+<div>
+<div class="eyebrow">Smart Garden • Teknologi hijau</div>
+<h1>Rawat tanaman dengan lebih cerdas.</h1>
+<p>HYDRA SOIL SENSOR adalah konsep pot tanaman pintar yang membantu memantau kondisi lingkungan dan kelembapan media tanam agar perawatan tanaman lebih mudah dan terarah.</p>
+<div class="actions">
+<a class="btn" href="#dashboard">Jelajahi dashboard</a>
+<a class="btn ghost" href="#tentang">Kenali proyek</a>
+</div>
+</div>
+<div class="plant-art" aria-label="Ilustrasi tanaman dalam pot">🌱</div>
+</div>
+</section>
+
+<section id="dashboard">
+<div class="wrap">
+<div class="section-head">
+<div>
+<div class="eyebrow" style="color:#2f8058">Pemantauan tanaman</div>
+<h2>Dashboard HYDRA SOIL SENSOR</h2>
+<p class="muted">Data pemantauan sensor melalui Blynk Cloud.</p>
+</div>
+<span class="status" id="connectionStatus">
+<i class="dot"></i> Menghubungkan...
+</span>
+</div>
+
+<div class="metrics">
+
+<article class="metric">
+<div class="metric-top">
+<span>🌡️ Suhu udara</span><span>DHT22</span>
+</div>
+<div class="metric-value" id="temperature">--°C</div>
+<small id="temperatureInfo">Menunggu data Blynk</small>
+<div class="bar"><i id="temperatureBar" style="width:0%"></i></div>
+</article>
+
+<article class="metric">
+<div class="metric-top">
+<span>💧 Kelembapan udara</span><span>DHT22</span>
+</div>
+<div class="metric-value" id="airHumidity">--%</div>
+<small id="humidityInfo">Menunggu data Blynk</small>
+<div class="bar"><i id="humidityBar" style="width:0%"></i></div>
+</article>
+
+<article class="metric">
+<div class="metric-top">
+<span>🪴 Kelembapan tanah</span><span>Soil sensor</span>
+</div>
+<div class="metric-value" id="soilMoisture">--%</div>
+<small id="soilInfo">Menunggu data Blynk</small>
+<div class="bar"><i id="soilBar" style="width:0%"></i></div>
+</article>
+
+</div>
+
+<div class="dash-grid">
+<article class="panel">
+<h3>Status perangkat</h3>
+<div class="reading"><strong>ESP32</strong><span id="espStatus">Menunggu koneksi</span></div>
+<div class="reading"><strong>Pompa air</strong><span>Pantau melalui Blynk</span></div>
+<div class="reading"><strong>Sensor air</strong><span>Terhubung ke ESP32</span></div>
+<div class="reading"><strong>Koneksi Blynk</strong><span id="blynkStatus">Belum terhubung</span></div>
+</article>
+
+<article class="panel">
+<h3>Catatan pembacaan</h3>
+<p class="muted" id="readingNote">
+Dashboard sedang menunggu data aktual dari ESP32 melalui Blynk.
+</p>
+<span class="status" id="dataStatus">Data belum tersedia</span>
+</article>
+</div>
+</div>
+</section>
+
+<section id="fitur">
+<div class="wrap">
+<div class="section-head">
+<div>
+<div class="eyebrow" style="color:#2f8058">Dirancang untuk membantu</div>
+<h2>Fitur utama</h2>
+</div>
+</div>
+
+<div class="features">
+<article class="feature">
+<div class="ico">🌡️</div>
+<h3>Pantau lingkungan</h3>
+<p>Pemantauan suhu dan kele
+
+
+
+
+
